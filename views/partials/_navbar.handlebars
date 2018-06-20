@@ -8,10 +8,11 @@
 
         <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
             <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Home
-                    </a>
-                </li>
+                {{#if user}}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                {{/if}}
                 <li class="nav-item">
                     <a class="nav-link" href="/about">About</a>
                 </li>
@@ -22,9 +23,21 @@
                 <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
             </form> --}}
             <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-<a href="/mainboard" class="nav-link">Main Board</a>
-                </li>
+                {{#if user}}
+                    <li class="nav-item">
+                        <a href="/mainboard" class="nav-link">My Board</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users/logout">Logout</a>
+                    </li>
+                {{else}}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users/register">Register</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users/login">Login</a>
+                    </li>
+                {{/if}}
             </ul>
         </div>
     </div>

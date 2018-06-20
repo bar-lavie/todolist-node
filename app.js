@@ -1,76 +1,98 @@
-const express = require('express');
-const exphbs = require('express-handlebars')
-var bodyParser = require('body-parser')
-const mongoose = require('mongoose');
+const express = require("express");
+const path = require("path");
+const exphbs = require("express-handlebars");
+const methodOverride = require("method-override");
+const flash = require("connect-flash");
+const session = require("express-session");
+const bodyParser = require("body-parser");
+const passport = require("passport");
+const mongoose = require("mongoose");
 
 const app = express();
 
+// Load routes
+const tasks = require('./routes/tasks');
+const users = require('./routes/users');
+
 // Connect to mongoose
-mongoose.connect('mongodb://localhost/todolix')
-    .then(() => console.log('MongoDB connected...'))
-    .catch(() => console.log(err));
-
-// Load idea model
-require('./models/Tasks');
-const Task = mongoose.model('Tasks');
+mongoose
+  .connect("mongodb://localhost/todolix")
+  .then(() => console.log("MongoDB connected..."))
+  .catch(() => console.log(err));
 
 
-// Handle-bars middleware
-app.engine('handlebars', exphbs({
-    defaultLayout: 'main'
-}));
-app.set('view engine', 'handlebars');
-
-// Body parser middleware
-app.use(bodyParser.urlencoded({
+// *********************************
+// ********* Middlewares
+// *********************************
+// Handlebars
+app.engine(
+  "handlebars",
+  exphbs({
+    defaultLayout: "main"
+  })
+);
+app.set("view engine", "handlebars");
+// Body parser
+app.use(
+  bodyParser.urlencoded({
     extended: false
-}))
-app.use(bodyParser.json())
+  })
+);
+app.use(bodyParser.json());
+// Method Override
+app.use(methodOverride("_method"));
+// Flash
+app.use(flash());
 
-// Routes
-app.get('/', (req, res) => {
-    const title = 'Welcome';
-    res.render('index', {
-        title: title
-    })
+// Session
+app.use(
+  session({
+    secret: "todolixisawesome",
+    resave: true,
+    saveUninitialized: true
+  }));
+// Passport middleware
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+// Global variables
+app.use(function(req, res, next) {
+  res.locals.success_msg = req.flash("success_msg");
+  res.locals.error_msg = req.flash("error_msg");
+  res.locals.error = req.flash("error");
+  res.locals.user = req.user || null;
+  next();
 });
 
-app.get('/about', (req, res) => {
-    res.render('about')
+// App set for public folder 
+app.use(express.static(path.join(__dirname, 'public')));
+
+// *********************************
+// ********* Routes
+// *********************************
+
+// Routes middleware
+const {ensureAuthenticated} = require('./helpers/auth');
+
+
+app.get("/", ensureAuthenticated, (req, res) => {
+  const title = "Welcome";
+  res.render("index", {
+    title: title
+  });
 });
 
-// Main to do list
-app.get('/mainboard', (req, res) => {
-    res.render('mainboard')
+app.get("/about", (req, res) => {
+  res.render("about");
 });
 
-// Proccess Form
-app.post('/mainboard', (req, res) => {
-    let errors = [];
-    if (!req.body.title) {
-        errors.push({
-            text: 'Please add a title'
-        })
-    }
+app.use('/mainboard',ensureAuthenticated, tasks)
 
-    if (errors.length > 0) {
-        res.render('mainboard', {
-            errors: errors,
-            details: req.body.details
-        })
-    } else {
-        const newUser = {
-            title: req.body.title,
-            details: req.body.details,
-        }
-        new Task(newUser)
-        .save()
-        .then(Task=>{
-            res.redirect('/mainboard');
-        })
-    }
-});
+app.use('/users', users)
+
+// Passport congig
+require('./config/passport')(passport)
 
 app.listen(5000, () => {
-    console.log(`server started on port 5000`);
+  console.log(`server started on port 5000`);
 });
